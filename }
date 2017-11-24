@@ -1,0 +1,380 @@
+include <bits/stdc++.h>
+#include <strstream>
+using namespace std;
+
+struct Printer
+{
+    char ID[30];
+    char Model[30];
+    char Desc[50];
+    char Price[8];
+};
+
+struct PIndex
+{
+    int offset;
+    char ID[30];
+    bool operator<(const PIndex &P)
+    {
+        if(strcmp(ID,P.ID)<0)
+            return true;
+        else
+            return false;
+    }
+};
+struct SIndex1
+{
+    char Model[30];
+    int Pointer;
+    bool operator<(const SIndex1 &S)
+    {
+        if(strcmp(Model,S.Model)<0)
+            return true;
+        else
+            return false;
+    }
+};
+
+struct SIndex2
+{
+    char Price[8];
+    int Pointer;
+    bool operator<(const SIndex2 &S)
+    {
+        if(strcmp(Price,S.Price)<0)
+            return true;
+        else
+            return false;
+    }
+};
+
+struct ListFile
+{
+    char ID[30];
+    int nextPointer;
+};
+
+vector<PIndex>PK;
+vector<SIndex1>SK1;
+vector<SIndex2>SK2;
+vector<ListFile>RF1;
+vector<ListFile>RF2;
+
+istream& operator>>(istream & input, Printer &P)
+{
+    cin.ignore();
+    cout << "\n Enter ID: ";
+    input.getline(P.ID, 30);
+    cout << "\n Enter Model: ";
+    input.getline(P.Model, 30);
+    cout << "\n Enter Description: ";
+    input.getline(P.Desc, 50);
+    cout<<"\n Enter Price : ";
+    input.getline(P.Price, 8);
+    return input;
+}
+
+ostream& operator<<(ostream & output, Printer &P)
+{
+    output <<"ID : " << P.ID << endl;
+    output <<"Model : " << P.Model << endl;
+    output <<"Description : " << P.Desc << endl;
+    output <<"Price : " << P.Price <<endl;
+    return output;
+}
+
+void loadPIndex()
+{
+    fstream file;
+    file.open("PIndex.txt",ios::in|ios::out);
+    while(!file.eof())
+    {
+        PIndex temp;
+        file.read((char*)&temp,sizeof(temp));
+        PK.push_back(temp);
+    }
+    file.close();
+}
+
+
+void loadSIndex1()
+{
+    fstream file;
+    file.open("SIndex1.txt",ios::in|ios::out);
+    while(!file.eof())
+    {
+        SIndex1 temp;
+        file.read((char*)&temp,sizeof(temp));
+        SK1.push_back(temp);
+    }
+    file.close();
+}
+
+void loadSIndex2()
+{
+    fstream file;
+    file.open("SIndex2.txt",ios::in|ios::out);
+    while(!file.eof())
+    {
+        SIndex2 temp;
+        file.read((char*)&temp,sizeof(temp));
+        SK2.push_back(temp);
+    }
+    file.close();
+}
+
+
+void readPrinter(Printer &P,int offset)
+{
+    fstream file;
+    file.open("Printer.txt",ios::in|ios::out);
+    file.seekg(offset+1,ios::beg);
+    short length;
+    file.read((char *)&length, sizeof(length));
+    char* buffer = new char[length];
+    file.read(buffer, length);
+    istrstream strbuf(buffer);
+    strbuf.getline(P.ID, 30, '#');
+    strbuf.getline(P.Model, 30, '#');
+    strbuf.getline(P.Desc, 50, '#');
+    strbuf.getline(P.Price,8,'#');
+    delete buffer;
+    file.close();
+}
+
+const int maxBuffersize = 200;
+
+void AddSIndex1(Printer &P)
+{
+    bool flag=0;
+    int index;
+    for(int i=0;i<SK1.size();i++)
+    {
+        if(strcmp(P.Model,SK1[i].Model)==0)
+        {
+            flag=1;
+            index=i;
+            break;
+        }
+    }
+    if(flag==0)
+    {
+       ListFile L;
+       strcpy(L.ID,P.ID);
+       L.nextPointer=-1;
+       RF1.push_back(L);
+       SIndex1 SK;
+       strcpy(SK.Model,P.Model);
+       SK.Pointer=RF1.size()-1;
+       SK1.push_back(SK);
+    }
+    else
+    {
+        int Ptr=SK1[index].Pointer;
+        if(Ptr==-1)
+        {
+           SK1[index].Pointer=RF1.size()-1;
+           return ;
+        }
+        while(RF1[Ptr].nextPointer!=-1)
+        {
+            Ptr=RF1[Ptr].nextPointer;
+        }
+        RF1[Ptr].nextPointer=RF1.size()-1;
+    }
+}
+
+void AddSIndex2(Printer &P)
+{
+    bool flag=0;
+    int index;
+    for(int i=0;i<SK2.size();i++)
+    {
+        if(strcmp(P.Price,SK2[i].Price)==0)
+        {
+            flag=1;
+            index=i;
+            break;
+        }
+    }
+    if(flag==0)
+    {
+       ListFile L;
+       strcpy(L.ID,P.ID);
+       L.nextPointer=-1;
+       RF2.push_back(L);
+       SIndex2 SK;
+       strcpy(SK.Price,P.Price);
+       L.nextPointer=RF2.size()-1;
+       SK2.push_back(SK);
+    }
+    else
+    {
+        int Ptr=SK2[index].Pointer;
+        if(Ptr==-1)
+        {
+           SK2[index].Pointer=RF2.size()-1;
+           return ;
+        }
+        while(RF2[Ptr].nextPointer!=-1)
+        {
+            Ptr=RF2[Ptr].nextPointer;
+        }
+        RF2[Ptr].nextPointer=RF2.size()-1;
+    }
+}
+
+void WritePrinter(Printer &P)
+{
+    fstream file;
+    file.open("Printer.txt",ios::in|ios::out);
+    char buffer[maxBuffersize];
+    strcpy(buffer, P.ID);
+    strcat(buffer, "#");
+    strcat(buffer, P.Model);
+    strcat(buffer, "#");
+    strcat(buffer, P.Desc);
+    strcat(buffer, "#");
+    strcat(buffer, P.Price);
+    strcat(buffer,"#");
+    short length=strlen(buffer);
+    file.seekp(0,ios::end);
+    int offset=file.tellp();
+    file.put('-');
+    file.write((char*)&length,sizeof(length));
+    file.write(buffer,length);
+    file.close();
+    PIndex Temp;
+    strcpy(Temp.ID,P.ID);
+    Temp.offset=offset;
+    PK.push_back(Temp);
+    AddSIndex1(P);
+    AddSIndex2(P);
+    sort(PK.begin(),PK.end());
+    sort(SK1.begin(),SK1.end());
+    sort(SK2.begin(),SK2.end());
+}
+int SearchByID(char ID[30])
+{
+    int offset=-1;
+    int low=0,high=PK.size()-1,mid;
+    while(low<=high)
+    {
+        mid=(low+high)/2;
+        if(strcmp(ID,PK[mid].ID)<0)
+            high=mid-1;
+        else if(strcmp(ID,PK[mid].ID)>0)
+            low=mid+1;
+        else
+        {
+            offset=PK[mid].offset;
+            break;
+        }
+    }
+    if(offset==-1)return offset;
+    fstream file;
+    file.open("Printer.txt",ios::in|ios::out);
+    file.seekg(offset,ios::beg);
+    char ch;
+    file.read((char*)&ch,sizeof(ch));
+    file.close();
+    if(ch=='*')
+        return -1;
+    return offset;
+}
+
+void DeleteByID(char ID[30])
+{
+    fstream file;
+    file.open("Printer.txt",ios::in|ios::out);
+    int offset=SearchByID(ID);
+    if(offset!=-1)
+    {
+        file.seekg(offset,ios::beg);
+        file.put('*');
+        for(int i=0;i<PK.size();i++)
+        {
+            if(PK[i].offset==offset)
+            {
+                PK.erase(PK.begin()+i);
+                break;
+            }
+        }
+        int index=-2,nextPointer=-2;
+        for(int i=0;i<RF1.size();i++)
+        {
+            if(strcmp(RF1[i].ID,ID)==0)
+            {
+                index=i;
+                nextPointer=RF1[i].nextPointer;
+                break;
+            }
+        }
+        bool flag=0;
+        for(int i=0;i<RF1.size();i++)
+        {
+            if(RF1[i].nextPointer==index)
+            {
+                RF1[i].nextPointer=nextPointer;
+                flag=1;
+                break;
+            }
+        }
+        if(flag==0)
+        {
+            for(int i=0;i<SK1.size();i++)
+            {
+                if(SK1[i].Pointer==index)
+                {
+                    SK1[i].Pointer=nextPointer;
+                    break;
+                }
+            }
+        }
+        index=nextPointer=-2;
+        for(int i=0;i<RF2.size();i++)
+        {
+            if(strcmp(RF2[i].ID,ID)==0)
+            {
+                index=i;
+                nextPointer=RF1[i].nextPointer;
+                break;
+            }
+        }
+        flag=0;
+        for(int i=0;i<RF2.size();i++)
+        {
+            if(RF2[i].nextPointer==index)
+            {
+                RF2[i].nextPointer=nextPointer;
+                flag=1;
+                break;
+            }
+        }
+        if(flag==0)
+        {
+            for(int i=0;i<SK2.size();i++)
+            {
+                if(SK2[i].Pointer==index)
+                {
+                    SK2[i].Pointer=nextPointer;
+                    break;
+                }
+            }
+        }
+        cout<<"Done!!"<<endl;
+    }
+    else
+    {
+        cout<<"NOT FOUND 404"<<endl;
+    }
+    file.close();
+
+}
+
+void SearchByModel(vector<int>&temp,char Model[30])
+{
+    int Ptr=-1;
+    int low=0,high=SK1.size()-1,mid;
+    while(low<=high)
+    {
